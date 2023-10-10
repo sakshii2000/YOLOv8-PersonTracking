@@ -120,16 +120,16 @@ def UI_box(x, img, color=None, label=None, id=id, line_thickness=None):
   cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
   if label:
     tf = max(tl -1, 1) # font thickness
-    t_size = cv2.getTextSize(label, 0, fontscale=tl / 3, thickness=tf)[0]
+    t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
     img = cv2.rectangle(img, (c1[0], c1[1] - t_size[1] -3), (c1[0] + t_size[0], c1[1]+3), color, -1,cv2.LINE_AA)
     
-    cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, LineType=cv2.LINE_AA)
+    cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
     if limitsUp[0] < cx < limitsUp[2] and limitsUp[1] - 50 < cy < limitsUp[1] + 50:
       if totalCountUp.count(id) == 0:
         totalCountUp.append(id)
         cv2.line(img, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), (0, 255, 0), 5)
     
-    if limitsDown[0] < cx < limitsDown[2] and limitsDown(1) - 50 < cy < limitsDown[1] + 50:
+    if limitsDown[0] < cx < limitsDown[2] and limitsDown[1] - 50 < cy < limitsDown[1] + 50:
       if totalCountDown.count(id) == 0:
          totalCountDown.append(id)
          cv2.line(img, (limitsDown[0], limitsDown[1]), (limitsDown[2], limitsDown[3]), (0, 255, 0),5)
