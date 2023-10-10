@@ -21,9 +21,11 @@ from deep_sort_pytorch.deep_sort import DeepSort
 from collections import deque
 import numpy as np
 palette = (2 ** 11 - 1, 2 ** 15 - 1, 2 ** 20 - 1)
-data_deque = {}
 
-deepsort = None
+limitsUp = [57,192,306,148]
+limitsDown = [449,401,633,339]
+totalCountUp =[]
+totalCountDown = []
 
 def init_tracker():
     global deepsort
@@ -106,30 +108,45 @@ def draw_border(img, pt1, pt2, color, thickness, r, d):
     
     return img
 
-def UI_box(x, img, color=None, label=None, line_thickness=None):
-    # Plots one bounding box on image img
-    tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
-    color = color or [random.randint(0, 255) for _ in range(3)]
-    c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
-    cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
-    if label:
-        tf = max(tl - 1, 1)  # font thickness
-        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
-
-        img = draw_border(img, (c1[0], c1[1] - t_size[1] -3), (c1[0] + t_size[0], c1[1]+3), color, 1, 8, 2)
-
-        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
 
+def UI_box(x, img, color=None, label=None, id=id, line_thickness=None):
+  tl= line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) +1
+  color = color or [random.randint(0, 255) for _ in range(3)]
+  c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
+  w, h = int(x[2]) - int(x[0]), int(x[3]) - int(x[1])
+  cx, cy = int(x[0]) + w // 2, int(x[1]) + h // 2
+  cv2.circle(img, (cx, cy), 5, (0,0,255), cv2.FILLED)
+  cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
+  if label:
+    tf = max(tl -1, 1) # font thickness
+    t_size = cv2.getTextSize(label, 0, fontscale=tl / 3, thickness=tf)[0]
+    img = cv2.rectangle(img, (c1[0], c1[1] - t_size[1] -3), (c1[0] + t_size[0], c1[1]+3), color, -1,cv2.LINE_AA)
+    
+    cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, LineType=cv2.LINE_AA)
+    if limitsUp[0] < cx < limitsUp[2] and limitsUp[1] - 50 < cy < limitsUp[1] + 50:
+      if totalCountUp.count(id) == 0:
+        totalCountUp.append(id)
+        cv2.line(img, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), (0, 255, 0), 5)
+    
+    if limitsDown[0] < cx < limitsDown[2] and limitsDown(1) - 50 < cy < limitsDown[1] + 50:
+      if totalCountDown.count(id) == 0:
+         totalCountDown.append(id)
+         cv2.line(img, (limitsDown[0], limitsDown[1]), (limitsDown[2], limitsDown[3]), (0, 255, 0),5)
+    
+    cv2.circle(img, (959,316), 50, (0,255,0), thickness=-1)
+    cv2.circle(img, (1221,316), 50, (0,0,255), thickness=-1)
+    cv2.putText(img, str(len(totalCountUp)), (929, 345) ,cv2.FONT_HERSHEY_PLAIN, 5, (0,0,0),7)
+    cv2.putText(img, str(len(totalCountDown)), (1191, 345) ,cv2.FONT_HERSHEY_PLAIN, 5, (0,0,0),7)
 
 def draw_boxes(img, bbox, names,object_id, identities=None, offset=(0, 0)):
     #cv2.line(img, line[0], line[1], (46,162,112), 3)
-
+    cv2.line(img, (limitsUp[0], limitsUp[1]), (limitsUp[2], limitsUp[3]), (46,162,112), 3)
+    cv2.line(img, (limitsDown[0], limitsDown[1]), (limitsDown[2], limitsDown[3]), (46,162,112), 3)
+    global totalCountUp
+    global totalCountDown
+
     height, width, _ = img.shape
-    # remove tracked point from buffer if object is lost
-    for key in list(data_deque):
-      if key not in identities:
-        data_deque.pop(key)
 
     for i, box in enumerate(bbox):
         x1, y1, x2, y2 = [int(i) for i in box]
@@ -144,25 +161,11 @@ def draw_boxes(img, bbox, names,object_id, identities=None, offset=(0, 0)):
         # get ID of object
         id = int(identities[i]) if identities is not None else 0
 
-        # create new buffer for new object
-        if id not in data_deque:  
-          data_deque[id] = deque(maxlen= 64)
         color = compute_color_for_labels(object_id[i])
         obj_name = names[object_id[i]]
         label = '{}{:d}'.format("", id) + ":"+ '%s' % (obj_name)
 
-        # add center to buffer
-        data_deque[id].appendleft(center)
         UI_box(box, img, label=label, color=color, line_thickness=2)
-        # draw trail
-        for i in range(1, len(data_deque[id])):
-            # check if on buffer value is none
-            if data_deque[id][i - 1] is None or data_deque[id][i] is None:
-                continue
-            # generate dynamic thickness of trails
-            thickness = int(np.sqrt(64 / float(i + i)) * 1.5)
-            # draw trails
-            cv2.line(img, data_deque[id][i - 1], data_deque[id][i], color, thickness)
     return img
 
 
